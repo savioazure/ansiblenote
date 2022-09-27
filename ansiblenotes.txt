@@ -116,3 +116,339 @@ cliente01
 you can check all modules availables on https://docs.ansible.com/ansible/2.9/modules/list_of_all_modules.html
 
 #creating first playbook
+
+mkdir playbooks ; cd playbooks
+
+vim hostname.yml  # first playbook to get hostanmes
+
+ex:
+
+cat /etc/ansible/playbooks/hostname.yml
+---
+- hosts: all
+  tasks:
+    -  command: hostname
+#try
+
+/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/hostname.yml --check
+
+PLAY [all] *******************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.4]
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [command] ***************************************************************************************************************************************
+skipping: [10.0.0.4]
+skipping: [10.0.0.6]
+skipping: [10.0.0.5]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.4                   : ok=1    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+10.0.0.5                   : ok=1    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+10.0.0.6                   : ok=1    changed=0    unreachable=0    failed=0    skipped=1    rescued=0    ignored=0
+
+
+edit structure, name function
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ cat /etc/ansible/playbooks/hostname.yml
+---
+- hosts: all
+  tasks:
+    - name: Buscando nome dos servidores
+      command: hostname
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/hostname.yml
+
+PLAY [all] *******************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.4]
+ok: [10.0.0.5]
+
+TASK [Buscando nome dos servidores] ******************************************************************************************************************
+changed: [10.0.0.5]
+changed: [10.0.0.6]
+changed: [10.0.0.4]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.4                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+10.0.0.5                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+10.0.0.6                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ :w
+
+
+# install nginx on server, playbook
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ cat /etc/ansible/playbooks/webservers.yaml
+---
+- hosts: Webservers
+  become: yes
+  become_user: root
+  tasks:
+    - name: Instalando Nginx
+      apt: name=nginx state=present update_cache=yes
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/webservers.yaml 
+
+PLAY [Webservers] ************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [Instalando Nginx] ******************************************************************************************************************************
+changed: [10.0.0.6]
+changed: [10.0.0.5]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.5                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+10.0.0.6                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ cat database.yaml
+---
+- hosts: DatabaseServers
+  become: yes
+  become_user: root
+  tasks:
+    - name: Instalando MSQL
+      apt: name=mysql-server state=present update_cache=yes
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/database.yaml
+
+PLAY [DatabaseServers] *******************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+
+TASK [Instalando MSQL] *******************************************************************************************************************************
+changed: [10.0.0.6]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.6                   : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+serveradmin@ansible-server:/etc/ansible/playbooks$
+
+
+#apt with items:
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ cat web.yaml 
+---
+- hosts: Webservers
+  become: yes
+  become_user: root
+  tasks:
+    - name: INstall Apache
+      apt: name={{item}} state=present update_cache=yes
+      with_items:
+       - apache2
+       - libapache2-mod-wsgi
+       
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/web.yaml 
+
+PLAY [Webservers] ************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [INstall Apache] ********************************************************************************************************************************
+ok: [10.0.0.6] => (item=apache2)
+ok: [10.0.0.5] => (item=apache2)
+ok: [10.0.0.6] => (item=libapache2-mod-wsgi)
+ok: [10.0.0.5] => (item=libapache2-mod-wsgi)
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.5                   : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+10.0.0.6                   : ok=2    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ 
+
+
+# configurando servicios
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ cat webservers2service.yaml
+---
+- hosts: Webservers
+  become: yes
+  become_user: root
+  tasks:
+    - name: Instalando Nginx
+      apt: name=nginx state=present update_cache=yes
+
+    - name: grant running service
+      service: name=nginx state=started enabled=yes
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/webservers2service.yaml
+
+PLAY [Webservers] ************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [Instalando Nginx] ******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [grant running service] *************************************************************************************************************************
+ok: [10.0.0.5]
+ok: [10.0.0.6]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.5                   : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+10.0.0.6                   : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+mysql
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ cat database2service.yaml
+---
+- hosts: DatabaseServers
+  become: yes
+  become_user: root
+  tasks:
+    - name: Instalando MSQL
+      apt: name=mysql-server state=present update_cache=yes
+
+    - name: grant running service
+      service: name=mysql state=started enabled=yes
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/database2service.yaml
+
+PLAY [DatabaseServers] *******************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+
+TASK [Instalando MSQL] *******************************************************************************************************************************
+ok: [10.0.0.6]
+
+TASK [grant running service] *************************************************************************************************************************
+ok: [10.0.0.6]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.6                   : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+serveradmin@ansible-server:/etc/ansible/playbooks$
+
+# reiniciar servicios:
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ cat stack_restart.yaml 
+---
+- hosts: Webservers
+  become: yes
+  become_user: root
+  tasks:
+    - service: name=nginx state=stopped
+
+- hosts: DatabaseServers
+  become: yes
+  become_user: root
+  tasks:
+    - service: name=mysql state=restarted
+
+- hosts: Webservers
+  become: yes
+  become_user: root
+  tasks:
+    - service: name=nginx state=started
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/stack_restart.yaml 
+
+PLAY [Webservers] ************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [service] ***************************************************************************************************************************************
+changed: [10.0.0.6]
+changed: [10.0.0.5]
+
+PLAY [DatabaseServers] *******************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+
+TASK [service] ***************************************************************************************************************************************
+changed: [10.0.0.6]
+
+PLAY [Webservers] ************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.5]
+ok: [10.0.0.6]
+
+TASK [service] ***************************************************************************************************************************************
+changed: [10.0.0.5]
+changed: [10.0.0.6]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.5                   : ok=4    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+10.0.0.6                   : ok=6    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ 
+
+#usando manipuladores:
+
+
+
+serveradmin@ansible-server:~$ cat /etc/ansible/playbooks/web2.yaml
+---
+- hosts: Webservers
+  become: yes
+  become_user: root
+  tasks:
+    - name: Stop NGINX to avoid COnflict on port 
+      service: name=nginx state=stopped
+
+    - name: INstall Apache
+      apt: name={{item}} state=present update_cache=yes
+      with_items:
+       - apache2
+       - libapache2-mod-wsgi
+
+    - name: iniciando apache
+      service: name=apache2 state=started enabled=yes
+
+    - name: habilitando modulo apache
+      apache2_module: state=present name=wsgi
+      notify: restart apache2
+
+  handlers:
+    - name: restart apache2
+      service: name=apache2 started
+
+serveradmin@ansible-server:~$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/web2.yaml 
+
+PLAY [Webservers] ************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.5]
+ok: [10.0.0.6]
+
+TASK [Stop NGINX to avoid COnflict on port] **********************************************************************************************************
+changed: [10.0.0.6]
+changed: [10.0.0.5]
+
+TASK [INstall Apache] ********************************************************************************************************************************
+ok: [10.0.0.5] => (item=apache2)
+ok: [10.0.0.6] => (item=apache2)
+ok: [10.0.0.5] => (item=libapache2-mod-wsgi)
+ok: [10.0.0.6] => (item=libapache2-mod-wsgi)
+
+TASK [iniciando apache] ******************************************************************************************************************************
+changed: [10.0.0.5]
+changed: [10.0.0.6]
+
+TASK [habilitando modulo apache] *********************************************************************************************************************
+ok: [10.0.0.6]
+changed: [10.0.0.5]
+
+RUNNING HANDLER [restart apache2] ********************************************************************************************************************
+changed: [10.0.0.5]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.5                   : ok=6    changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+10.0.0.6                   : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+
+
