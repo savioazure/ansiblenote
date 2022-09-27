@@ -1,0 +1,118 @@
+
+
+#intall ansible
+
+sudo apt-add-repository ppa:ansible/ansible
+
+sudo apt-get update
+
+sudo apt-get install ansible
+
+#config
+
+cat /etc/ansible/hosts
+
+vim /etc/ansible/dev
+ex:
+		[Webservers]
+		10.0.0.5
+		10.0.0.6
+
+		[DatabaseServers]
+		10.0.0.6
+
+		[Controller]
+		10.0.0.4 ansible_connection=local
+
+#select node
+
+ansible -i /etc/ansible/dev --list-host all
+
+ansible -i /etc/ansible/dev --list-host Webservers
+
+ansible -i /etc/ansible/dev --list-host DatabaseServers
+
+ansible -i /etc/ansible/dev --list-host Controller
+
+ansible -i /etc/ansible/dev --list-host Controller:Webservers
+
+ansible -i /etc/ansible/dev --list-host \!Controller
+
+#module
+
+ansible -i /etc/ansible/dev -m ping all
+
+# have to install python on host controlled.
+
+sudo apt-get install python
+
+#still necessary add key files on host file as ex:
+
+[Webservers]
+10.0.0.5 ansible_ssh_private_key_file=/home/serveradmin/ppp/cliente01_key.pem
+10.0.0.6 ansible_ssh_private_key_file=/home/serveradmin/ppp/cliente02_key.pem
+
+[DatabaseServers]
+10.0.0.6 ansible_ssh_private_key_file=/home/serveradmin/ppp/cliente02_key.pem
+
+[Controller]
+10.0.0.4 ansible_connection=local
+
+
+# still errors, missing users for hosts:
+
+[Webservers]
+10.0.0.5 ansible_ssh_private_key_file=/home/serveradmin/ppp/cliente01_key.pem ansible_user=client01
+10.0.0.6 ansible_ssh_private_key_file=/home/serveradmin/ppp/cliente02_key.pem ansible_user=client02
+
+[DatabaseServers]
+10.0.0.6 ansible_ssh_private_key_file=/home/serveradmin/ppp/cliente02_key.pem
+
+[Controller]
+10.0.0.4 ansible_connection=local
+
+#now you can try with succes:
+
+serveradmin@ansible-server:/etc/ansible$ ansible -i /etc/ansible/dev -m ping all
+
+
+[WARNING]: Ansible is being run in a world writable directory (/etc/ansible), ignoring it as an ansible.cfg source. For more information see
+https://docs.ansible.com/ansible/devel/reference_appendices/config.html#cfg-in-world-writable-dir
+10.0.0.4 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+10.0.0.5 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+10.0.0.6 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+
+#modulo command
+
+ansible -i /etc/ansible/dev -m command -a "hostname" all
+[WARNING]: Ansible is being run in a world writable directory (/etc/ansible), ignoring it as an ansible.cfg source. For more information see
+https://docs.ansible.com/ansible/devel/reference_appendices/config.html#cfg-in-world-writable-dir
+10.0.0.4 | CHANGED | rc=0 >>
+ansible-server
+10.0.0.6 | CHANGED | rc=0 >>
+cliente02
+10.0.0.5 | CHANGED | rc=0 >>
+cliente01
+
+
+you can check all modules availables on https://docs.ansible.com/ansible/2.9/modules/list_of_all_modules.html
+
+#creating first playbook
