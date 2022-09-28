@@ -451,4 +451,259 @@ PLAY RECAP *********************************************************************
 10.0.0.5                   : ok=6    changed=4    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
 10.0.0.6                   : ok=5    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
 
+#copy function
 
+serveradmin@ansible-server:/etc/ansible/playbooks$ cat web2wcopy.yaml
+---
+- hosts: Webservers
+  become: yes
+  become_user: root
+  tasks:
+    - name: Stop NGINX to avoid COnflict on port
+      service: name=nginx state=stopped
+
+    - name: INstall Apache
+      apt: name={{item}} state=present update_cache=yes
+      with_items:
+       - apache2
+       - libapache2-mod-wsgi
+
+    - name: iniciando apache
+      service: name=apache2 state=started enabled=yes
+
+    - name: habilitando modulo apache
+      apache2_module: state=present name=wsgi
+      notify: restart apache2
+
+    - name: Copiar directorio para Apache
+      copy: src=/etc/ansible/demo/app/ dest=/var/www/demo/ mode=0755
+      notify: restart apache2
+
+    - name: Copiar os vhost do Apache
+      copy: src=/etc/ansible/demo/demo.conf dest=/etc/apache2/sites-available/
+      notify: restart apache2
+
+  handlers:
+    - name: restart apache2
+      service: name=apache2 state=restarted
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/web2wcopy.yaml
+
+PLAY [Webservers] ************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [Stop NGINX to avoid COnflict on port] **********************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [INstall Apache] ********************************************************************************************************************************
+ok: [10.0.0.6] => (item=apache2)
+ok: [10.0.0.5] => (item=apache2)
+ok: [10.0.0.6] => (item=libapache2-mod-wsgi)
+ok: [10.0.0.5] => (item=libapache2-mod-wsgi)
+
+TASK [iniciando apache] ******************************************************************************************************************************
+ok: [10.0.0.5]
+ok: [10.0.0.6]
+
+TASK [habilitando modulo apache] *********************************************************************************************************************
+ok: [10.0.0.5]
+ok: [10.0.0.6]
+
+TASK [Copiar directorio para Apache] *****************************************************************************************************************
+ok: [10.0.0.5]
+ok: [10.0.0.6]
+
+TASK [Copiar os vhost do Apache] *********************************************************************************************************************
+changed: [10.0.0.6]
+changed: [10.0.0.5]
+
+RUNNING HANDLER [restart apache2] ********************************************************************************************************************
+changed: [10.0.0.6]
+changed: [10.0.0.5]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.5                   : ok=8    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+10.0.0.6                   : ok=8    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+serveradmin@ansible-server:/etc/ansible/playbooks$
+
+#create virtual dev env for python:
+
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ vim /etc/ansible/demo/app/requirements.txt
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/web3.yaml
+serveradmin@ansible-server:/etc/ansible/playbooks$ cat /etc/ansible/demo/app/requirements.txt
+matplotlib
+numpy
+openpyxl
+pandas
+
+
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/web3.yaml
+
+PLAY [Webservers] ************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [Stop NGINX to avoid COnflict on port] **********************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [INstall Apache] ********************************************************************************************************************************
+ok: [10.0.0.6] => (item=apache2)
+ok: [10.0.0.5] => (item=apache2)
+ok: [10.0.0.6] => (item=libapache2-mod-wsgi)
+ok: [10.0.0.5] => (item=libapache2-mod-wsgi)
+ok: [10.0.0.6] => (item=python3)
+ok: [10.0.0.5] => (item=python3)
+ok: [10.0.0.6] => (item=python3-virtualenv)
+ok: [10.0.0.5] => (item=python3-virtualenv)
+ok: [10.0.0.6] => (item=virtualenv)
+ok: [10.0.0.5] => (item=virtualenv)
+
+TASK [iniciando apache] ******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [habilitando modulo apache] *********************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [Copiar directorio para Apache] *****************************************************************************************************************
+changed: [10.0.0.6]
+changed: [10.0.0.5]
+
+TASK [Copiar os vhost do Apache] *********************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [configurando virtual enviroment] ***************************************************************************************************************
+changed: [10.0.0.5]
+changed: [10.0.0.6]
+
+RUNNING HANDLER [restart apache2] ********************************************************************************************************************
+changed: [10.0.0.6]
+changed: [10.0.0.5]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.5                   : ok=9    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+10.0.0.6                   : ok=9    changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+# files function
+
+erveradmin@ansible-server:/etc/ansible/playbooks$ cat web4.yaml
+---
+- hosts: Webservers
+  become: yes
+  become_user: root
+  tasks:
+    - name: Stop NGINX to avoid COnflict on port
+      service: name=nginx state=stopped
+
+    - name: INstall Apache
+      apt: name={{item}} state=present update_cache=yes
+      with_items:
+       - apache2
+       - libapache2-mod-wsgi
+       - python3
+       - python3-virtualenv
+       - virtualenv
+
+    - name: iniciando apache
+      service: name=apache2 state=started enabled=yes
+
+    - name: habilitando modulo apache
+      apache2_module: state=present name=wsgi
+      notify: restart apache2
+
+    - name: Copiar directorio para Apache
+      copy: src=/etc/ansible/demo/app/ dest=/var/www/demo/ mode=0755
+      notify: restart apache2
+
+    - name: Copiar os vhost do Apache
+      copy: src=/etc/ansible/demo/demo.conf dest=/etc/apache2/sites-available/
+      notify: restart apache2
+
+    - name: configurando virtual enviroment
+      pip: requirements=/var/www/demo/requirements.txt virtualenv=/var/www/demo/.venv
+      notify: restart apache2
+
+    - name: Disable default site
+      file: path=/etc/apache2/sites-enabled/000-default.conf state=absent
+      notify: restart apache2
+
+    - name: enable new site
+      file: src=/etc/apache2/sites-available/demo.conf dest=/etc/apache2/sites-enabled/demo.conf state=link
+      notify: restart apache2
+
+  handlers:
+    - name: restart apache2
+      service: name=apache2 state=restarted
+serveradmin@ansible-server:/etc/ansible/playbooks$ ansible-playbook -i /etc/ansible/dev /etc/ansible/playbooks/web4.yaml
+
+PLAY [Webservers] ************************************************************************************************************************************
+
+TASK [Gathering Facts] *******************************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [Stop NGINX to avoid COnflict on port] **********************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [INstall Apache] ********************************************************************************************************************************
+ok: [10.0.0.6] => (item=apache2)
+ok: [10.0.0.5] => (item=apache2)
+ok: [10.0.0.6] => (item=libapache2-mod-wsgi)
+ok: [10.0.0.5] => (item=libapache2-mod-wsgi)
+ok: [10.0.0.6] => (item=python3)
+ok: [10.0.0.5] => (item=python3)
+ok: [10.0.0.6] => (item=python3-virtualenv)
+ok: [10.0.0.5] => (item=python3-virtualenv)
+ok: [10.0.0.6] => (item=virtualenv)
+ok: [10.0.0.5] => (item=virtualenv)
+
+TASK [iniciando apache] ******************************************************************************************************************************
+ok: [10.0.0.5]
+ok: [10.0.0.6]
+
+TASK [habilitando modulo apache] *********************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [Copiar directorio para Apache] *****************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [Copiar os vhost do Apache] *********************************************************************************************************************
+ok: [10.0.0.5]
+ok: [10.0.0.6]
+
+TASK [configurando virtual enviroment] ***************************************************************************************************************
+ok: [10.0.0.6]
+ok: [10.0.0.5]
+
+TASK [Disable default site] **************************************************************************************************************************
+ok: [10.0.0.5]
+changed: [10.0.0.6]
+
+TASK [enable new site] *******************************************************************************************************************************
+changed: [10.0.0.5]
+changed: [10.0.0.6]
+
+RUNNING HANDLER [restart apache2] ********************************************************************************************************************
+changed: [10.0.0.6]
+changed: [10.0.0.5]
+
+PLAY RECAP *******************************************************************************************************************************************
+10.0.0.5                   : ok=11   changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+10.0.0.6                   : ok=11   changed=3    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+
+serveradmin@ansible-server:/etc/ansible/playbooks$
+
+######## FIN CURSO 1 Ansible ####
